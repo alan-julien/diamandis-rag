@@ -1,0 +1,8 @@
+chromadb
+requests
+anthropic
+streamlit
+python-dotenv
+html2text
+pandas
+python-docx
