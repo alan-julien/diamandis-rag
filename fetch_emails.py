@@ -63,10 +63,26 @@ def save_processed_ids(ids: set):
 
 def html_to_text(html: str) -> str:
     h = html2text.HTML2Text()
-    h.ignore_links   = True
-    h.ignore_images  = True
-    h.body_width     = 0
-    return h.handle(html)
+    h.ignore_links    = True
+    h.ignore_images   = True
+    h.ignore_emphasis = True   # supprime les marqueurs ** et * (bold/italic)
+    h.body_width      = 0
+    text = h.handle(html)
+
+    # Supprimer les marqueurs de titre Markdown (# ## ### …)
+    text = re.sub(r"^#{1,6}\s+", "", text, flags=re.MULTILINE)
+    # Supprimer les échappements de ponctuation produits par html2text (ex : 1\. → 1.)
+    text = re.sub(r"\\([^\s])", r"\1", text)
+    # Supprimer les caractères invisibles courants dans les newsletters Substack
+    text = re.sub(r"[͏­​‌‍﻿]", "", text)
+    # Supprimer les espaces parasites avant les apostrophes (ex : "Sinclair 's" → "Sinclair's")
+    text = re.sub(r"\s+(['’]s\b)", r"\1", text)
+    # Supprimer les lignes de tableau Markdown (---|--- ou |---|)
+    text = re.sub(r"^[\s|]*[-:]{2,}[\s|]*$", "", text, flags=re.MULTILINE)
+    # Supprimer les lignes de cellules de tableau vides ou ne contenant que des pipes
+    text = re.sub(r"^\|[\s|]*$", "", text, flags=re.MULTILINE)
+
+    return text
 
 
 # ── Utilitaires ───────────────────────────────────────────────────────────────
