@@ -3,6 +3,7 @@
 __pycache__/
 *.pyc
 data/
+!data/system_prompts.json
 .claude
 CLAUDE.md
 parse_docs.py

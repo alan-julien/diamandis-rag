@@ -239,6 +239,8 @@ if "explore_results" not in st.session_state:
     st.session_state.explore_results = None
 if "explore_query" not in st.session_state:
     st.session_state.explore_query = ""
+if "explore_threshold" not in st.session_state:
+    st.session_state.explore_threshold = 0.0
 if "prompts" not in st.session_state:
     st.session_state.prompts = load_prompts()
 
@@ -253,7 +255,7 @@ tab_explore, tab_prompts = st.tabs(["🔍 Explorer", "📋 Prompts système"])
 with tab_explore:
 
     # ── Barre de recherche ────────────────────────────────────────────────────
-    col_input, col_k = st.columns([4, 1])
+    col_input, col_k, col_score = st.columns([4, 1, 1.4])
     with col_input:
         explore_query = st.text_input(
             "Requête",
@@ -263,6 +265,15 @@ with tab_explore:
     with col_k:
         k_explore = st.number_input(
             "Top N", min_value=1, max_value=100, value=TOP_K_DEFAULT, step=5
+        )
+    with col_score:
+        score_threshold = st.number_input(
+            "Score min (0 = aucun filtre)",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.0,
+            step=0.05,
+            format="%.2f",
         )
 
     if st.button("🔍 Rechercher", type="primary"):
@@ -289,13 +300,26 @@ with tab_explore:
                     df.sort_values("score", ascending=False, inplace=True)
                     df.reset_index(drop=True, inplace=True)
                     st.session_state.explore_results = df
+                    st.session_state.explore_threshold = score_threshold
                 except Exception as e:
                     st.error(f"Erreur lors de la recherche : {e}")
                     st.session_state.explore_results = None
 
     # ── Résultats ─────────────────────────────────────────────────────────────
     if st.session_state.explore_results is not None:
-        df = st.session_state.explore_results
+        df_full = st.session_state.explore_results
+        threshold = st.session_state.explore_threshold
+
+        if threshold > 0.0:
+            df = df_full[df_full["score"] >= threshold].reset_index(drop=True)
+            n_filtered = len(df_full) - len(df)
+            if n_filtered > 0:
+                st.caption(
+                    f"🔎 {len(df)} résultat(s) affichés · "
+                    f"{n_filtered} écarté(s) sous le seuil de {threshold:.2f}"
+                )
+        else:
+            df = df_full
 
         # ── Tout cocher / décocher ───────────────────────────────────────────
         col_check, col_uncheck, _ = st.columns([1, 1, 8])
