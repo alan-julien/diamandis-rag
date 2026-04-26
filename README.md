@@ -4,10 +4,12 @@ Moteur de recherche sémantique sur les newsletters de Peter Diamandis (Metatren
 
 ## Ce que ça fait
 
-Une interface Streamlit avec deux modes :
+Une interface Streamlit avec deux onglets :
 
-- **Exploration RAG** : pose une question → les articles les plus proches sont retrouvés par similarité vectorielle (Voyage AI) → Claude Sonnet génère une réponse sourcée avec citations
-- **Prompts système** : gestion de plusieurs prompts système personnalisables, sélectionnables à la volée et persistés en JSON
+- **Explorer** : pose une question → les articles les plus proches sont retrouvés par similarité vectorielle (Voyage AI) → les chunks sont affichés avec score, titre, date, et peuvent être copiés pour être collés dans un LLM externe
+- **Prompts système** : bibliothèque de prompts personnalisables, persistés en JSON, à coller avec les sources récupérées
+
+> L'app est un outil de **retrieval pur** — elle ne génère pas de réponse. C'est l'utilisateur qui colle les sources dans le LLM de son choix avec le prompt système approprié.
 
 ## Stack
 
@@ -16,26 +18,20 @@ Une interface Streamlit avec deux modes :
 | Interface | Streamlit |
 | Embeddings | Voyage AI (`voyage-4`) |
 | Base vectorielle | ChromaDB (persistée dans `db/`) |
-| Génération | Claude Sonnet (`claude-sonnet-4-20250514`) |
-| Pipeline emails | Claude Haiku (segmentation) |
-| Stockage articles | JSON (`data/parsed/`) |
+| Pipeline de construction | Claude Haiku (segmentation des articles) |
+| Stockage articles | JSON (`data/parsed/`, non versionné) |
 
 ## Architecture
 
 ```
 Gmail IMAP / fichiers DOCX
   └── fetch_emails.py / parse_docs.py
-        └── clean_articles.py       # nettoyage contenu
-              └── segment_articles.py  # découpe en sections via Claude Haiku
-                    └── ingest.py       # embeddings Voyage AI → ChromaDB
+        └── clean_articles.py         # nettoyage contenu
+              └── segment_articles.py # découpe en sections via Claude Haiku
+                    └── ingest.py     # embeddings Voyage AI → ChromaDB
 
-app.py                               # interface Streamlit
+app.py                                # interface Streamlit (Voyage AI uniquement)
 ```
-
-Les articles sont stockés à trois stades dans `data/parsed/` :
-- `all_articles.json` — brut
-- `all_articles_clean.json` — nettoyé
-- `all_articles_segmented.json` — découpé en sections (source de vérité pour l'indexation)
 
 Les prompts système sont persistés dans `data/system_prompts.json`.
 
@@ -48,11 +44,20 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Créer un fichier `.env` à la racine :
+### Pour lancer l'application uniquement
+
+Seule `VOYAGE_API_KEY` est nécessaire :
 
 ```
-ANTHROPIC_API_KEY=...
 VOYAGE_API_KEY=...
+```
+
+### Pour mettre à jour la base (fetch emails)
+
+Variables supplémentaires requises :
+
+```
+ANTHROPIC_API_KEY=...           # utilisé par Claude Haiku pour segmenter les articles
 GMAIL_ADDRESS=...
 GMAIL_APP_PASSWORD=...          # mot de passe d'application Gmail, pas le principal
 GMAIL_FOLDER=INBOX
@@ -71,15 +76,13 @@ streamlit run app.py
 python fetch_emails.py
 ```
 
-Ce script récupère uniquement les emails non encore traités (registre dans `data/processed_email_ids.json`), les nettoie, les segmente et les indexe de façon incrémentale. Ensuite committer `db/` et `data/parsed/` pour mettre à jour Streamlit Cloud.
+Ce script récupère uniquement les emails non encore traités (registre dans `data/processed_email_ids.json`), les nettoie, les segmente via Claude Haiku et les indexe de façon incrémentale. Ensuite committer `db/` pour mettre à jour Streamlit Cloud.
 
 ## Déploiement (Streamlit Cloud)
 
 La base vectorielle (`db/`) est committée dans git (~10 Mo) et servie directement.
 
-Les secrets sont à configurer dans le dashboard Streamlit Cloud : **Settings → Secrets**.
-
-`fetch_emails.py` se lance en local pour enrichir la base, puis `db/` est committé et poussé pour redéployer.
+Les secrets sont à configurer dans le dashboard Streamlit Cloud : **Settings → Secrets**. Seule `VOYAGE_API_KEY` est obligatoire pour l'app.
 
 ## Sources de données
 
