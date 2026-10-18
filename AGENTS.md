@@ -69,6 +69,18 @@ Gmail IMAP / DOCX files
 - Set secrets in the Streamlit Cloud dashboard (**Settings > Secrets**). The app requires only `VOYAGE_API_KEY`.
 - To update the index, run `fetch_emails.py` locally, then commit and push the updated `db/`.
 
-## Prochaines étapes
+## Running on Windows
 
-1. Ingérer les nouveaux articles avec `python fetch_emails.py`, puis committer `db/` pour redéployer.
+`python` isn't on the PATH, and `chromadb` is installed only in the virtual environment. Use the venv interpreter and force UTF-8 output, or special characters (→, accents) crash the script (cp1252):
+
+```powershell
+$ragDir = "C:\Users\Alan_JULIEN\projets\partages\blog\diamandis-rag"
+$env:PYTHONIOENCODING = "utf-8"
+& "$ragDir\.venv\Scripts\python.exe" "$ragDir\query_rag.py" "<query>" --k 15
+```
+
+## Project context
+
+- `ETAT.md`: current state and next steps. Read it at the start of each session; rewrite it at the end.
+- `CARTE.md`: where documents and resources live.
+- `HISTORIQUE.md`: past decisions and their reasons (read only when needed).
