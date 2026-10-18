@@ -74,7 +74,7 @@ Gmail IMAP / DOCX files
 `python` isn't on the PATH, and `chromadb` is installed only in the virtual environment. Use the venv interpreter and force UTF-8 output, or special characters (→, accents) crash the script (cp1252):
 
 ```powershell
-$ragDir = "C:\Users\Alan_JULIEN\projets\partages\blog\diamandis-rag"
+$ragDir = "C:\Users\Alan_JULIEN\projets\partages\diamandis-rag"
 $env:PYTHONIOENCODING = "utf-8"
 & "$ragDir\.venv\Scripts\python.exe" "$ragDir\query_rag.py" "<query>" --k 15
 ```
